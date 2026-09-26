@@ -47,10 +47,6 @@ CMD ["pnpm", "run", "dev", "--host"]
 # ---- production dependencies stage ----
 FROM build AS prod-deps
 
-# Keep only production deps for runtime
-RUN pnpm prune --prod --ignore-scripts
-
-
 # ---- production stage (this is now the LAST stage, so it's the default) ----
 FROM prod-deps AS bolt-ai-production
 WORKDIR /app
