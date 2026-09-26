@@ -13,11 +13,16 @@ dotenv.config();
 
 export default defineConfig((config) => {
   return {
+    server: {
+      host: true,
+      allowedHosts: true,
+    },
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
     },
     build: {
       target: 'esnext',
+      sourcemap: false,
     },
     plugins: [
       nodePolyfills({
