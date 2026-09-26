@@ -29,6 +29,21 @@ RUN pnpm install --offline --frozen-lockfile
 # Build the Remix app (SSR + client)
 RUN NODE_OPTIONS=--max-old-space-size=4096 pnpm run build
 
+# ---- development stage ----
+FROM build AS development
+
+# Non-sensitive development arguments
+ARG VITE_LOG_LEVEL=debug
+ARG DEFAULT_NUM_CTX
+
+# Set non-sensitive environment variables for development
+ENV VITE_LOG_LEVEL=${VITE_LOG_LEVEL} \
+    DEFAULT_NUM_CTX=${DEFAULT_NUM_CTX} \
+    RUNNING_IN_DOCKER=true
+
+RUN mkdir -p /app/run
+CMD ["pnpm", "run", "dev", "--host"]
+
 # ---- production dependencies stage ----
 FROM build AS prod-deps
 
@@ -36,7 +51,7 @@ FROM build AS prod-deps
 RUN pnpm prune --prod --ignore-scripts
 
 
-# ---- production stage ----
+# ---- production stage (this is now the LAST stage, so it's the default) ----
 FROM prod-deps AS bolt-ai-production
 WORKDIR /app
 
@@ -53,9 +68,6 @@ ENV WRANGLER_SEND_METRICS=false \
     VITE_LOG_LEVEL=${VITE_LOG_LEVEL} \
     DEFAULT_NUM_CTX=${DEFAULT_NUM_CTX} \
     RUNNING_IN_DOCKER=true
-
-# Note: API keys should be provided at runtime via docker run -e or docker-compose
-# Example: docker run -e OPENAI_API_KEY=your_key_here ...
 
 # Install curl for healthchecks and copy bindings script
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
@@ -82,22 +94,3 @@ HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=5 \
 
 # Start using dockerstart script with Wrangler
 CMD ["pnpm", "run", "dockerstart"]
-
-
-# ---- development stage ----
-FROM build AS development
-
-# Non-sensitive development arguments
-ARG VITE_LOG_LEVEL=debug
-ARG DEFAULT_NUM_CTX
-
-# Set non-sensitive environment variables for development
-ENV VITE_LOG_LEVEL=${VITE_LOG_LEVEL} \
-    DEFAULT_NUM_CTX=${DEFAULT_NUM_CTX} \
-    RUNNING_IN_DOCKER=true
-
-# Note: API keys should be provided at runtime via docker run -e or docker-compose
-# Example: docker run -e OPENAI_API_KEY=your_key_here ...
-
-RUN mkdir -p /app/run
-CMD ["pnpm", "run", "dev", "--host"]
